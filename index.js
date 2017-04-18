@@ -24,8 +24,8 @@ app.use(express.bodyParser());
 
 // Mongo Host
 
-var mongoHost = 'localHost'; //A
-var mongoPort = 27017;
+// var mongoHost = 'localHost'; //A
+// var mongoPort = 27017;
 var mongoURL = process.env.MONGOLAB_URI;
 var collectionDriver;
 var fileDriver;
