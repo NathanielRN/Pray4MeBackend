@@ -13,13 +13,17 @@ CollectionDriver.prototype.getCollection = function(collectionName, callback) {
 
 CollectionDriver.prototype.findAll = function(collectionName, callback) {
     this.getCollection(collectionName, function(error, the_collection) { //A
-      if( error ) callback(error);
-      else {
-        the_collection.find().toArray(function(error, results) { //B
-          if( error ) callback(error);
-          else callback(null, results);
-        });
-      }
+		if(error) {
+			callback(error);
+		}
+		else {
+			the_collection.find().toArray(function(error, results) { //B
+				if(error) {
+					callback(error); }
+				else {
+					callback(null, results); }
+			});
+		}
     });
 };
 
@@ -55,17 +59,17 @@ CollectionDriver.prototype.save = function(collectionName, obj, callback) {
 //update a specific object - Note: This does not support property specific updating: Updating an object means replacing the old object with an entirely new one
 CollectionDriver.prototype.update = function(collectionName, obj, entityId, callback) {
     this.getCollection(collectionName, function(error, the_collection) {
-            if (error) callback(error);
-                    else {
-                                obj._id = ObjectID(entityId); //A convert to a real obj id
-                                            obj.updated_at = new Date(); //B
-                                                        the_collection.save(obj, function(error,doc) { //C
-                                                                        if (error) callback(error);
-                                                                                        else callback(null, obj);
-                                                                                                    });
-                                                                                                            }
-                                                                                                                });
-                                                                                                                };
+		if (error) callback(error);
+		else {
+			obj._id = ObjectID(entityId); //A convert to a real obj id
+			obj.updated_at = new Date(); //B
+			the_collection.save(obj, function(error,doc) { //C
+				if (error) callback(error);
+				else callback(null, obj);
+			});
+		}
+	});
+};
 
 // Delete a specfic object
 CollectionDriver.prototype.delete = function(collectionName, entityId, callback) {
