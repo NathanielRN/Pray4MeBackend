@@ -60,24 +60,44 @@ app.post('/files', function(req, res) {fileDriver.handleUploadRequest(req, res);
 app.get('/files/:id', function(req, res) {fileDriver.handleGet(req, res);});
 
 // The / is the base. The : means this HAS to be included AND means it's a placeholder for the actual path!. But putting a ? means it can or cannot be added with no problem.
-app.get('/:firstParameter', function(req, res) { //A
-   var params = req.params; //B
-   var query = req.query.query; // req.query gets the whole "query" part at the end of the URL and adding .query indicates a query to be perform on this "query" part of the request
-   if (query) {
-	   query = JSON.parse(query);
-	   collectionDriver.query(req.params.firstParameter, query, returnCollectionResults(req, res));
-   } else {
-	   collectionDriver.findAll(req.params.firstParameter, returnCollectionResults(req, res));
-   }
+
+app.get('/:firstParameter/:secondParameter?/:thirdParameter?', function(req, res) { //I
+	var params = req.params;
+	var firstParameter = params.firstParameter;
+	var secondParameter = params.secondParameter;
+	var thirdParameter = params.thirdParameter
+	var query = req.query.query; // req.query gets the whole "query" part at the end of the URL and adding .query indicates a query to be perform on this "query" part of the request
+	if (firstParameter && !secondParameter && !thirdParameter) {
+		if (query) {
+			query = JSON.parse(query);
+			collectionDriver.query(req.params.firstParameter, query, returnCollectionResults(params.firstParameter, req, res));
+		} else {
+			collectionDriver.findAll(req.params.firstParameter, returnCollectionResults(params.firstParameter, req, res));
+		}
+	} else if (firstParameter && secondParameter && !thirdParameter) {
+	   collectionDriver.get(firstParameter, secondParameter, function(error, objs) { //J
+	      if (error) { res.send(400, error); }
+	      else { res.send(200, objs); } //K
+	   });
+	} else if (firstParameter && secondParameter && thirdParameter) {
+		if (query) {
+			query = JSON.parse(query); // Isn't going in here and it's because I'm not giving the query correctly which I got to fix...
+			collectionDriver.query(req.params.thirdParameter, query, returnCollectionResults(firstParameter + '/' + secondParameter + '/' + thirdParameter, req, res));
+		} else {
+			collectionDriver.findAll(secondParameter + '/' + thirdParameter, returnCollectionResults(firstParameter + '/' + secondParameter + '/' + thirdParameter, req, res));
+		}
+	} else {
+	  res.send(400, {error: 'bad url', url: req.url});
+	}
 });
 
-function returnCollectionResults(req,res) {
+function returnCollectionResults(titleForTableDisplay, req, res) {
 return function(error, objs) { // 5
 		if (error) {
 		res.send(400, error); } //D
 		else {
 			if (req.accepts('html')) { //E
-					res.render('data',{objects: objs, collection: req.params.collection}); //F //This is not ideal I want to see all the req params tbh
+					res.render('data',{objects: objs, collection: titleForTableDisplay}); //F //This is not ideal I want to see all the req params tbh
 			} else {
 				res.set('Content-Type','application/json'); //G
 				res.send(200, objs); //H
@@ -86,37 +106,14 @@ return function(error, objs) { // 5
 	};
 };
 
-app.get('/:firstParameter/:secondParameter/:thirdParameter?', function(req, res) { //I
-   var params = req.params;
-   var firstParameter = params.firstParameter;
-   var secondParameter = params.secondParameter;
-   var thirdParameter = params.thirdParameter
-   var query = req.query.query; // req.query gets the whole "query" part at the end of the URL and adding .query indicates a query to be perform on this "query" part of the request
-		var test = req.query;
-   if (secondParameter && !thirdParameter) {
-       collectionDriver.get(firstParameter, secondParameter, function(error, objs) { //J
-          if (error) { res.send(400, error); }
-          else { res.send(200, objs); } //K
-       });
-   } else if (thirdParameter) {
-			if (query) {
-				query = JSON.parse(query); // Isn't going in here and it's because I'm not giving the query correctly which I got to fix...
-				collectionDriver.query(req.params.thirdParameter, query, returnCollectionResults(req, res));
-			} else {
-				collectionDriver.findAll(req.params.thirdParameter, returnCollectionResults(req, res));
-			}
-   } else {
-      res.send(400, {error: 'bad url', url: req.url});
-   }
-});
-
 //Post methods
 app.post('/:firstParameter/:secondParameter?/:thirdParameter?', function(req, res) { //A
     var object = req.body;
     var firstParameter = req.params.firstParameter;
+    var secondParameter = req.params.secondParameter;
     var thirdParameter = req.params.thirdParameter
 	if (thirdParameter) {
-		collectionDriver.save(thirdParameter, object, function(err,docs) {
+		collectionDriver.save(secondParameter + '/' + thirdParameter, object, function(err,docs) {
 	              if (err) { res.send(400, err);}
 		                else {
 		                res.send(201, docs); } //B
@@ -128,8 +125,8 @@ app.post('/:firstParameter/:secondParameter?/:thirdParameter?', function(req, re
 		});
 	}
 });
-// Update method
 
+// Update method
 app.put('/:firstParameter/:secondParameter', function(req, res) { //A
 	    var params = req.params;
 	        var secondParameter = params.secondParameter;
@@ -147,19 +144,26 @@ app.put('/:firstParameter/:secondParameter', function(req, res) { //A
 
 // Delete method
 
-app.delete('/:firstParameter/:secondParameter', function(req, res) { //A
-	    var params = req.params;
-	        var secondParameter = params.secondParameter;
-		    var firstParameter = params.firstParameter;
-	        if (secondParameter) {
-				collectionDriver.delete(firstParameter, secondParameter, function(error, objs) { //B
-					if (error) { res.send(400, error); }
-					else { res.send(200, objs); } //C 200 b/c includes the original doc
-				});
-			} else {
-				var error = { "message" : "Cannot DELETE a whole collection (firstParameter)" };
-				res.send(400, error);
-			}
+app.delete('/:firstParameter/:secondParameter?/:thirdParameter?/:fourthParameter?', function(req, res) { //A
+	var params = req.params;
+	var firstParameter = params.firstParameter;
+	var secondParameter = params.secondParameter;
+	var thirdParameter = params.thirdParameter;
+	var fourthParameter = params.fourthParameter;
+	if (secondParameter && !fourthParameter) {
+		collectionDriver.delete(firstParameter, secondParameter, function(error, objs) { //B
+			if (error) { res.send(400, error); }
+			else { res.send(200, objs); } //C 200 b/c includes the original doc
+		});
+	} else if (fourthParameter) {
+		collectionDriver.delete(secondParameter + '/' + thirdParameter, fourthParameter, function(error, objects) {
+			if error { res.send(400, error); }
+			else { res.send(200, objects); }
+		});
+	} else {
+		var error = { "message" : "Cannot DELETE a whole collection (firstParameter)" };
+		res.send(400, error);
+	}
 });
 //2
 
